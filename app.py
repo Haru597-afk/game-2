@@ -101,7 +101,6 @@ if st.session_state.game_started:
     )
     pos = nx.spring_layout(G, seed=42)
 
-    # 1. วาดเส้นเชื่อม (Edges)
     edge_x = []
     edge_y = []
     for u, v, d in G.edges(data=True):
@@ -118,7 +117,6 @@ if st.session_state.game_started:
         mode="lines",
     )
 
-    # 2. ขยายขนาดและปรับสีตัวเลขน้ำหนัก (Weight) ให้เด่นชัดที่สุด
     weight_x = []
     weight_y = []
     weight_text = []
@@ -134,4 +132,15 @@ if st.session_state.game_started:
         y=weight_y,
         mode="text",
         text=weight_text,
-        textfont=dict(color="red", size=16
+        textfont=dict(color="red", size=16),
+        hoverinfo="none",
+    )
+
+    node_x = []
+    node_y = []
+    node_colors = []
+
+    for node in G.nodes():
+        x, y = pos[node]
+        node_x.append(x)
+        node_y.append(y)
