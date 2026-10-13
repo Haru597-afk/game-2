@@ -52,7 +52,7 @@ def generate_new_game(g_type, n):
         while not nx.is_connected(G):
             seed = np.random.randint(1, 10000)
             G = nx.random_geometric_graph(n, radius=0.45, seed=seed)
-    else:  # Complex Erdos-Renyi
+    else:
         p = max(0.25, 4.0 / n)
         G = nx.erdos_renyi_graph(n, p, seed=seed)
         while not nx.is_connected(G):
@@ -95,4 +95,158 @@ if st.session_state.game_started:
     end_node = st.session_state.end_node
 
     st.info(
-        f"จุดเริ่มต้น (Start): โหนด {start_node}
+        f"จุดเริ่มต้น (Start): โหนด {start_node}  |  จุดปลายทาง (Finish): โหนด {end_node} (ทั้งหมด {len(G.nodes())} โหนด)"
+    )
+
+    optimal_dist = nx.shortest_path_length(
+        G, source=start_node, target=end_node, weight="weight"
+    )
+
+    pos = (
+        nx.kamada_kawai_layout(G)
+        if len(G.nodes()) <= 20
+        else nx.spring_layout(G, seed=42)
+    )
+
+    edge_x = []
+    edge_y = []
+    for u, v, d in G.edges(data=True):
+        x0, y0 = pos[u]
+        x1, y1 = pos[v]
+        edge_x.extend([x0, x1, None])
+        edge_y.extend([y0, y1, None])
+
+    edge_trace = go.Scatter(
+        x=edge_x,
+        y=edge_y,
+        line=dict(width=1.5, color="#888"),
+        hoverinfo="none",
+        mode="lines",
+    )
+
+    weight_x = []
+    weight_y = []
+    weight_text = []
+    for u, v, d in G.edges(data=True):
+        x0, y0 = pos[u]
+        x1, y1 = pos[v]
+        weight_x.append((x0 + x1) / 2)
+        weight_y.append((y0 + y1) / 2)
+        weight_text.append(str(d["weight"]))
+
+    weight_trace = go.Scatter(
+        x=weight_x,
+        y=weight_y,
+        mode="text",
+        text=weight_text,
+        textfont=dict(color="red", size=12, family="sans-serif"),
+        hoverinfo="none",
+    )
+
+    node_x = []
+    node_y = []
+    node_text = []
+    node_colors = []
+
+    for node in G.nodes():
+        x, y = pos[node]
+        node_x.append(x)
+        node_y.append(y)
+        node_text.append(str(node))
+        if node == start_node:
+            node_colors.append("lightgreen")
+        elif node == end_node:
+            node_colors.append("orange")
+        elif node in st.session_state.user_path:
+            node_colors.append("skyblue")
+        else:
+            node_colors.append("white")
+
+    node_trace = go.Scatter(
+        x=node_x,
+        y=node_y,
+        mode="markers+text",
+        text=node_text,
+        textposition="top center",
+        hoverinfo="text",
+        marker=dict(
+            showscale=False,
+            color=node_colors,
+            size=28,
+            line=dict(width=2, color="black"),
+        ),
+    )
+
+    fig = go.Figure(
+        data=[edge_trace, weight_trace, node_trace],
+        layout=go.Layout(
+            showlegend=False,
+            hovermode="closest",
+            margin=dict(b=20, l=20, r=20, t=20),
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        ),
+    )
+
+    st.write("👇 **คลิกที่โหนดเพื่อเดินทีละก้าว (ระวังเลือกเส้นทางผิดนะ!):**")
+    selected_point = plotly_events(
+        fig, click_event=True, hover_event=False, override_height=520
+    )
+
+    if selected_point:
+        if selected_point[0].get("curveNumber") == 2:
+            clicked_idx = selected_point[0]["pointIndex"]
+            clicked_node = list(G.nodes())[clicked_idx]
+            last_node = st.session_state.user_path[-1]
+
+            if clicked_node == last_node:
+                st.warning(f"คุณอยู่ที่โหนด {clicked_node} แล้ว")
+            elif G.has_edge(last_node, clicked_node):
+                st.session_state.user_path.append(clicked_node)
+                st.session_state.submitted = False
+                st.rerun()
+            else:
+                st.error(
+                    f"❌ ไม่มีเส้นทางเชื่อมตรงจากโหนด {last_node} ไปยัง {clicked_node}"
+                )
+
+    current_user_path = st.session_state.user_path
+    total_user_dist = 0
+
+    for i in range(len(current_user_path) - 1):
+        u = current_user_path[i]
+        v = current_user_path[i + 1]
+        total_user_dist += G[u][v]["weight"]
+
+    st.markdown("---")
+    path_display = " ➔ ".join(str(n) for n in current_user_path)
+    st.write(f"🚶‍♂️ **เส้นทางที่คุณเดินปัจจุบัน:** {path_display}")
+    st.write(f"ระยะทางรวมที่คุณเดินตอนนี้: **{total_user_dist} หน่วย**")
+
+    if current_user_path[-1] == end_node:
+        st.success(
+            "🎯 เดินทางถึงเป้าหมายแล้ว! กดปุ่มด้านล่างเพื่อตรวจคำตอบระดับเซียน"
+        )
+        if not st.session_state.submitted:
+            if st.button("🏁 ยืนยันคำตอบขั้นเด็ดขาด"):
+                st.session_state.submitted = True
+                st.rerun()
+        else:
+            if total_user_dist == optimal_dist:
+                st.balloons()
+                st.success(
+                    "🏆 สุดยอดมาก! คุณหาเส้นทางที่สั้นที่สุดในกราฟสุดโหดนี้ได้อย่างแม่นยำ!"
+                )
+            else:
+                st.error(
+                    f"❌ ยังไม่ใช่เส้นทางที่สั้นที่สุด! (ระยะทางรวม: {total_user_dist} หน่วย) "
+                    "ลองพยายามหาเส้นทางอื่นที่สั้นกว่านี้ดูอีกครั้ง"
+                )
+                if st.button("🔄 เริ่มเดินใหม่เพื่อหาเส้นทางที่สั้นกว่า"):
+                    st.session_state.user_path = [
+                        st.session_state.start_node
+                    ]
+                    st.session_state.submitted = False
+                    st.rerun()
+    else:
+        st.info("💡 วางแผนเส้นทางอย่างรอบคอบแล้วเดินต่อไปให้ถึงเป้าหมาย")
