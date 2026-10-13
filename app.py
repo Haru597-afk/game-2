@@ -105,7 +105,7 @@ if st.session_state.game_started:
       hoverinfo="none",
   )
 
-  # 3. วาดโหนด (Nodes)
+  # 3. วาดโหนดแบบแยก Trace (ปุ่มวงกลมคลิกได้ง่ายและแม่นยำ)
   node_x = []
   node_y = []
   node_text = []
@@ -126,23 +126,34 @@ if st.session_state.game_started:
     else:
       node_colors.append("white")
 
+  # Trace สำหรับปุ่มวงกลมโหนด (รองรับการคลิก)
   node_trace = go.Scatter(
       x=node_x,
       y=node_y,
-      mode="markers+text",
-      text=node_text,
-      textposition="top center",
+      mode="markers",
       hoverinfo="text",
+      text=node_text,
       marker=dict(
           showscale=False,
           color=node_colors,
-          size=35,
+          size=40,
           line=dict(width=2, color="black"),
       ),
   )
 
+  # Trace สำหรับตัวหนังสือชื่อโหนด (แยกต่างหากเพื่อไม่ให้บังการคลิก)
+  text_trace = go.Scatter(
+      x=node_x,
+      y=node_y,
+      mode="text",
+      text=node_text,
+      textposition="middle center",
+      textfont=dict(color="black", size=12, family="sans-serif"),
+      hoverinfo="none",
+  )
+
   fig = go.Figure(
-      data=[edge_trace, weight_trace, node_trace],
+      data=[edge_trace, weight_trace, node_trace, text_trace],
       layout=go.Layout(
           showlegend=False,
           hovermode="closest",
@@ -166,9 +177,8 @@ if st.session_state.game_started:
       fig, click_event=True, hover_event=False, override_height=450
   )
 
-  # จัดการคลิกโหนดผ่าน pointIndex ของ Trace โหนดโดยตรง (แม่นยำ 100%)
+  # จัดการคลิกโหนดผ่าน pointIndex ของ node_trace (ซึ่งอยู่ใน index ที่ 2)
   if selected_point:
-    # node_trace อยู่ในตำแหน่ง index ที่ 2 ของ data list (curveNumber == 2)
     if selected_point[0].get("curveNumber") == 2:
       clicked_idx = selected_point[0].get("pointIndex")
       if clicked_idx is not None and clicked_idx < len(nodes_list):
