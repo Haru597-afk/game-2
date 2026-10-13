@@ -111,7 +111,8 @@ if st.session_state.game_started:
   node_text = []
   node_colors = []
 
-  for node in G.nodes():
+  nodes_list = list(G.nodes())
+  for node in nodes_list:
     x, y = pos[node]
     node_x.append(x)
     node_y.append(y)
@@ -151,7 +152,7 @@ if st.session_state.game_started:
       ),
   )
 
-  # กำหนดค่าเริ่มต้นให้กับตัวแปรคำนวณระยะทางเพื่อป้องกัน NameError
+  # คำนวณระยะทางเริ่มต้น
   current_user_path = st.session_state.user_path
   total_user_dist = 0
   for i in range(len(current_user_path) - 1):
@@ -165,26 +166,20 @@ if st.session_state.game_started:
       fig, click_event=True, hover_event=False, override_height=450
   )
 
-  # จัดการคลิกโหนดด้วยระบบพิกัดที่แม่นยำ
+  # จัดการคลิกโหนดผ่าน pointIndex ของ Trace โหนดโดยตรง (แม่นยำ 100%)
   if selected_point:
-    click_x = selected_point[0].get("x")
-    click_y = selected_point[0].get("y")
-    if click_x is not None and click_y is not None:
-      closest_node = None
-      min_dist = float("inf")
-      for node, (nx_pos, ny_pos) in pos.items():
-        dist = (nx_pos - click_x) ** 2 + (ny_pos - click_y) ** 2
-        if dist < min_dist:
-          min_dist = dist
-          closest_node = node
-
-      if min_dist < 0.15 and closest_node is not None:
+    # node_trace อยู่ในตำแหน่ง index ที่ 2 ของ data list (curveNumber == 2)
+    if selected_point[0].get("curveNumber") == 2:
+      clicked_idx = selected_point[0].get("pointIndex")
+      if clicked_idx is not None and clicked_idx < len(nodes_list):
+        clicked_node = nodes_list[clicked_idx]
         last_node = st.session_state.user_path[-1]
-        if closest_node == last_node and len(st.session_state.user_path) > 1:
+
+        if clicked_node == last_node and len(st.session_state.user_path) > 1:
           st.session_state.user_path.pop()
           st.rerun()
-        elif G.has_edge(last_node, closest_node):
-          st.session_state.user_path.append(closest_node)
+        elif G.has_edge(last_node, clicked_node):
+          st.session_state.user_path.append(clicked_node)
           st.rerun()
 
   st.markdown("---")
