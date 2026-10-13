@@ -7,12 +7,12 @@ st.set_page_config(page_title="Shortest Path Game", layout="centered")
 
 st.title("🗺️ เกมทายเส้นทางที่สั้นที่สุด (Shortest Path Game)")
 st.write(
-    "กติกา: ระบบจะสุ่มกราฟและจุดเริ่มต้น-จุดปลายทางให้ "
-    "ให้คุณเลือกเส้นทางเดินเองทีละโหนด แล้วมาดูกันว่าระยะทางรวมที่คุณเดินเป็นเท่าไหร่"
-    " และเทียบกับเส้นทางที่สั้นที่สุดของ Dijkstra!"
+    "กติกา: ระบบจะสุ่มกราฟ จุดเริ่มต้น และจุดปลายทางให้ "
+    "ให้คุณเลือกโหนดเพื่อสร้างเส้นทางเดินเอง แล้วมาดูกันว่าระยะทางรวมที่คุณเดินเป็นเท่าไหร่ "
+    "และเทียบกับเส้นทางที่สั้นที่สุดของ Dijkstra!"
 )
 
-# ใช้ st.session_state เพื่อเก็บบันทึกสถานะเกมและป้องกันกราฟสุ่มใหม่เองเวลากดเลือก[cite: 5]
+# ใช้ st.session_state เพื่อบันทึกสถานะเกม
 if "game_started" not in st.session_state:
   st.session_state.game_started = False
 
@@ -51,11 +51,10 @@ else:
     st.rerun()
 
   st.info(
-      f"จุดเริ่มต้น (Start): **โหนด {start_node}**  |  จุดปลายทาง (Finish): **โหนด"
-      f" {end_node}**"
+      f"จุดเริ่มต้น (Start): โหนด {start_node}  |  จุดปลายทาง (Finish): โหนด {end_node}"
   )
 
-  # คำนวณคำตอบที่สั้นที่สุดด้วย Dijkstra รอไว้เทียบ
+  # คำนวณเส้นทางที่สั้นที่สุดด้วย Dijkstra
   optimal_path = nx.shortest_path(
       G, source=start_node, target=end_node, weight="weight"
   )
@@ -63,10 +62,10 @@ else:
       G, source=start_node, target=end_node, weight="weight"
   )
 
-  # ให้ผู้เล่นเลือกเส้นทางโดยระบุลำดับโหนดที่ต้องการเดินผ่าน
+  # ให้ผู้เล่นเลือกเส้นทางผ่าน multiselect
   all_nodes = list(G.nodes())
   user_selected_path = st.multiselect(
-      "เลือกโหนดตามลำดับเส้นทางที่คุณจะเดิน (ตั้งแต่ Start ไปจนถึง Finish):",
+      "เลือกโหนดตามลำดับเส้นทางที่คุณจะเดิน (เริ่มต้นจาก Start ไปยัง Finish):",
       all_nodes,
       default=[start_node],
   )
@@ -80,8 +79,7 @@ else:
         or user_selected_path[-1] != end_node
     ):
       st.warning(
-          f"⚠️ เส้นทางต้องเริ่มต้นที่โหนด {start_node} และสิ้นสุดที่โหนด"
-          f" {end_node}"
+          f"⚠️ เส้นทางต้องเริ่มจากโหนด {start_node} และจบที่โหนด {end_node}"
       )
       valid_path = False
     else:
@@ -91,11 +89,11 @@ else:
         if G.has_edge(u, v):
           total_user_dist += G[u][v]["weight"]
         else:
-          st.error(f"❌ ไม่มีเส้นทางเชื่อมระหว่างโหนด {u} และ {v} (เดินผิดกฎ!)")
+          st.error(f"❌ ไม่มีเส้นทางเชื่อมตรงระหว่างโหนด {u} และ {v}")
           valid_path = False
           break
 
-  # แสดงผลกราฟ
+  # แสดงผลรูปกราฟ
   fig, ax = plt.subplots(figsize=(8, 5))
   pos = nx.spring_layout(G, seed=42)
 
@@ -105,32 +103,4 @@ else:
   )
 
   # ไฮไลต์เส้นทางที่ผู้เล่นเลือกด้วยสีฟ้า
-  if valid_path and len(user_selected_path) > 1:
-    user_edges = list(zip(user_selected_path[:-1], user_selected_path[1:]))
-    nx.draw_networkx_edges(
-        G, pos, edgelist=user_edges, width=4, edge_color="blue", ax=ax
-    )
-
-  # วาดโหนด (Start สีเขียว, Finish สีส้ม, ปกติสีฟ้า)
-  nx.draw_networkx_nodes(
-      G, pos, node_color="lightblue", node_size=700, ax=ax
-  )
-  nx.draw_networkx_nodes(
-      G, pos, nodelist=[start_node], node_color="lightgreen", node_size=800, ax=ax
-  )
-  nx.draw_networkx_nodes(
-      G, pos, nodelist=[end_node], node_color="orange", node_size=800, ax=ax
-  )
-  nx.draw_networkx_labels(G, pos, font_size=12, ax=ax)
-
-  edge_weights = nx.get_edge_attributes(G, "weight")
-  nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_weights, ax=ax)
-
-  ax.axis("off")
-  st.pyplot(fig)
-  plt.close(fig)
-
-  # แสดงผลคะแนนและผลลัพธ์
-  if valid_path and len(user_selected_path) > 1:
-    st.success(
-        f"🚶‍♂️ ระยะทางที่คุณ
+  if valid_path and len(user_selected_path) >
