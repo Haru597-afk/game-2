@@ -8,8 +8,7 @@ st.set_page_config(page_title="Hardcore Shortest Path Game", layout="centered")
 
 st.title("🔥 เกมคลิกหาเส้นทางที่สั้นที่สุด (ระดับฮาร์ดคอร์)")
 st.write(
-    "ยินดีต้อนรับสู่โหมดความยากสูงสุด! ระบบจะสร้างกราฟขนาดใหญ่ โครงสร้างซับซ้อน "
-    "และค่าน้ำหนักที่หลากหลายสะใจ เลือกรูปแบบและความยากด้านล่างแล้วมาท้าทายกันเลย!"
+    "ยินดีต้อนรับสู่โหมดความยากสูงสุด! ระบบจะสร้างกราฟขนาดใหญ่ โครงสร้างซับซ้อน และค่าน้ำหนักที่หลากหลายสะใจ เลือกรูปแบบและความยากด้านล่างแล้วมาท้าทายกันเลย!"
 )
 
 if "game_started" not in st.session_state:
@@ -95,14 +94,12 @@ if st.session_state.game_started:
     end_node = st.session_state.end_node
 
     st.info(
-        f"จุดเริ่มต้น (Start): โหนด {start_node}  |  จุดปลายทาง (Finish): โหนด {end_node} (ทั้งหมด {len(G.nodes())} โหนด)"
+        f"จุดเริ่มต้น (Start): โหนด {start_node} | จุดปลายทาง (Finish): โหนด {end_node} (ทั้งหมด {len(G.nodes())} โหนด)"
     )
 
     optimal_dist = nx.shortest_path_length(
         G, source=start_node, target=end_node, weight="weight"
     )
-
-    # ใช้ spring_layout เสมอเพื่อความเสถียรและไม่ต้องพึ่ง scipy
     pos = nx.spring_layout(G, seed=42)
 
     edge_x = []
@@ -124,65 +121,4 @@ if st.session_state.game_started:
     weight_x = []
     weight_y = []
     weight_text = []
-    for u, v, d in G.edges(data=True):
-        x0, y0 = pos[u]
-        x1, y1 = pos[v]
-        weight_x.append((x0 + x1) / 2)
-        weight_y.append((y0 + y1) / 2)
-        weight_text.append(str(d["weight"]))
-
-    weight_trace = go.Scatter(
-        x=weight_x,
-        y=weight_y,
-        mode="text",
-        text=weight_text,
-        textfont=dict(color="red", size=12, family="sans-serif"),
-        hoverinfo="none",
-    )
-
-    node_x = []
-    node_y = []
-    node_text = []
-    node_colors = []
-
-    for node in G.nodes():
-        x, y = pos[node]
-        node_x.append(x)
-        node_y.append(y)
-        node_text.append(str(node))
-        if node == start_node:
-            node_colors.append("lightgreen")
-        elif node == end_node:
-            node_colors.append("orange")
-        elif node in st.session_state.user_path:
-            node_colors.append("skyblue")
-        else:
-            node_colors.append("white")
-
-    node_trace = go.Scatter(
-        x=node_x,
-        y=node_y,
-        mode="markers+text",
-        text=node_text,
-        textposition="top center",
-        hoverinfo="text",
-        marker=dict(
-            showscale=False,
-            color=node_colors,
-            size=28,
-            line=dict(width=2, color="black"),
-        ),
-    )
-
-    fig = go.Figure(
-        data=[edge_trace, weight_trace, node_trace],
-        layout=go.Layout(
-            showlegend=False,
-            hovermode="closest",
-            margin=dict(b=20, l=20, r=20, t=20),
-            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-        ),
-    )
-
-    st.write("👇 **คลิกที่โหนดเพื่อเดินทีละก้าว (ระ
+    for u, v
