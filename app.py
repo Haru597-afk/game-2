@@ -151,13 +151,21 @@ if st.session_state.game_started:
       ),
   )
 
+  # กำหนดค่าเริ่มต้นให้กับตัวแปรคำนวณระยะทางเพื่อป้องกัน NameError
+  current_user_path = st.session_state.user_path
+  total_user_dist = 0
+  for i in range(len(current_user_path) - 1):
+    u = current_user_path[i]
+    v = current_user_path[i + 1]
+    total_user_dist += G[u][v]["weight"]
+
   # แสดงกราฟและดักจับการคลิกเมาส์
   st.write("👇 **คลิกที่โหนดบนแผนภาพเพื่อเดินทีละก้าว:**")
   selected_point = plotly_events(
       fig, click_event=True, hover_event=False, override_height=450
   )
 
-  # จัดการคลิกโหนดด้วยระบบพิกัดที่แม่นยำ (รองรับทุกโหนด รวมถึงโหนดสุดท้าย)
+  # จัดการคลิกโหนดด้วยระบบพิกัดที่แม่นยำ
   if selected_point:
     click_x = selected_point[0].get("x")
     click_y = selected_point[0].get("y")
@@ -179,6 +187,27 @@ if st.session_state.game_started:
           st.session_state.user_path.append(closest_node)
           st.rerun()
 
-  # คำนวณระยะทางที่ผู้เล่นเดินสะสม
-  current_user_path = st.session_state.user_path
-  total_user_dist
+  st.markdown("---")
+  path_display = " ➔ ".join([str(n) for n in current_user_path])
+  st.write(f"🚶‍♂️ **เส้นทางที่คุณเดินปัจจุบัน:** {path_display}")
+  st.write(f"ระยะทางรวมที่คุณเดินตอนนี้: **{total_user_dist} หน่วย**")
+
+  # ปุ่มยืนยันคำตอบในตอนท้าย
+  if st.button("🏁 ยืนยันคำตอบ (Confirm Path)"):
+    if len(current_user_path) <= 1:
+      st.warning("⚠️ กรุณาคลิกเลือกเส้นทางเดินอย่างน้อย 1 ก้าว")
+    elif current_user_path[-1] != end_node:
+      st.warning(
+          f"⚠️ ยังเดินไม่ถึงจุดปลายทาง! (ปัจจุบันอยู่ที่โหนด {current_user_path[-1]}"
+          f" แต่เป้าหมายคือโหนด {end_node})"
+      )
+    else:
+      if total_user_dist == optimal_dist:
+        st.balloons()
+        st.success("🎉 ยินดีด้วย! คุณหาเส้นทางที่สั้นที่สุดได้ถูกต้องและยอดเยี่ยมมาก!")
+      else:
+        optimal_str = " ➔ ".join([str(n) for n in optimal_path])
+        st.info(
+            f"🏁 ผลลัพธ์: ระยะทางรวมของคุณคือ {total_user_dist} หน่วย"
+            f" (เส้นทางที่สั้นที่สุดจริง ๆ คือ {optimal_dist} หน่วย: {optimal_str})"
+        )
