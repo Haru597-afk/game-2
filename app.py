@@ -149,28 +149,4 @@ if st.session_state.game_started:
             node_colors.append("white")
 
     node_trace = go.Scatter(
-        x=node_x,
-        y=node_y,
-        mode="markers+text",
-        text=[str(n) for n in G.nodes()],
-        textposition="top center",
-        hoverinfo="text",
-        marker=dict(
-            showscale=False,
-            color=node_colors,
-            size=36,
-            line=dict(width=3, color="black"),
-        ),
-        textfont=dict(size=14, color="black"),
-    )
-
-    fig = go.Figure(
-        data=[edge_trace, weight_trace, node_trace],
-        layout=go.Layout(
-            title=dict(
-                text="แผนผังเครือข่ายเส้นทางพร้อมค่าน้ำหนัก",
-                font=dict(size=16),
-            ),
-            showlegend=False,
-            hovermode="closest",
-            margin=dict(b=20,
+        x=node
