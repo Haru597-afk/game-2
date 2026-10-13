@@ -8,7 +8,9 @@ st.set_page_config(page_title="Shortest Path Click Game", layout="centered")
 
 st.title("🗺️ เกมคลิกเลือกเส้นทางที่สั้นที่สุด (Shortest Path Click Game)")
 st.write(
-    "กติกา: ระบบจะสุ่มกราฟ จุดเริ่มต้น และจุดปลายทางให้ ให้คุณใช้เมาส์คลิกที่โหนดบนแผนภาพเพื่อเดินทีละก้าว จากนั้นกดปุ่มยืนยันด้านล่างเพื่อตรวจคะแนน!"
+    "กติกา: ระบบจะสุ่มกราฟ จุดเริ่มต้น และจุดปลายทางให้ "
+    "ให้คุณใช้เมาส์คลิกที่โหนดเพื่อเดินไปจนถึงเป้าหมาย โดยระบบจะไม่เฉลยความถูกต้องระหว่างทาง "
+    "ให้กดปุ่มยืนยันในตอนท้ายเพื่อตรวจคำตอบ!"
 )
 
 # 1) ตั้งค่าสถานะเกมด้วย st.session_state
@@ -33,6 +35,7 @@ def generate_new_game():
   st.session_state.start_node = nodes[0]
   st.session_state.end_node = nodes[-1]
   st.session_state.user_path = [nodes[0]]
+  st.session_state.submitted = False
   st.session_state.game_started = True
 
 
@@ -43,8 +46,9 @@ with col_b1:
     generate_new_game()
     st.rerun()
 with col_b2:
-  if st.button("🔄 สุ่มแผนที่ใหม่"):
-    generate_new_game()
+  if st.button("🔄 รีเซ็ตเส้นทางที่เดิน"):
+    st.session_state.user_path = [st.session_state.start_node]
+    st.session_state.submitted = False
     st.rerun()
 
 if st.session_state.game_started:
@@ -53,11 +57,11 @@ if st.session_state.game_started:
   end_node = st.session_state.end_node
 
   st.info(
-      f"🎯 จุดเริ่มต้น (Start): โหนด {start_node} ➔ จุดปลายทาง (Finish): โหนด"
+      f"จุดเริ่มต้น (Start): โหนด {start_node}  |  จุดปลายทาง (Finish): โหนด"
       f" {end_node}"
   )
 
-  # คำนวณเส้นทางที่สั้นที่สุดด้วย Dijkstra
+  # คำนวณคำตอบที่สั้นที่สุดด้วย Dijkstra (เก็บไว้ตรวจตอนกดคอนเฟิร์ม)
   optimal_path = nx.shortest_path(
       G, source=start_node, target=end_node, weight="weight"
   )
@@ -105,14 +109,13 @@ if st.session_state.game_started:
       hoverinfo="none",
   )
 
-  # 3. วาดโหนดแบบแยก Trace (ปุ่มวงกลมคลิกได้ง่ายและแม่นยำ)
+  # 3. วาดโหนด (Nodes)
   node_x = []
   node_y = []
   node_text = []
   node_colors = []
 
-  nodes_list = list(G.nodes())
-  for node in nodes_list:
+  for node in G.nodes():
     x, y = pos[node]
     node_x.append(x)
     node_y.append(y)
@@ -126,34 +129,23 @@ if st.session_state.game_started:
     else:
       node_colors.append("white")
 
-  # Trace สำหรับปุ่มวงกลมโหนด (รองรับการคลิก)
   node_trace = go.Scatter(
       x=node_x,
       y=node_y,
-      mode="markers",
-      hoverinfo="text",
+      mode="markers+text",
       text=node_text,
+      textposition="top center",
+      hoverinfo="text",
       marker=dict(
           showscale=False,
           color=node_colors,
-          size=40,
+          size=35,
           line=dict(width=2, color="black"),
       ),
   )
 
-  # Trace สำหรับตัวหนังสือชื่อโหนด (แยกต่างหากเพื่อไม่ให้บังการคลิก)
-  text_trace = go.Scatter(
-      x=node_x,
-      y=node_y,
-      mode="text",
-      text=node_text,
-      textposition="middle center",
-      textfont=dict(color="black", size=12, family="sans-serif"),
-      hoverinfo="none",
-  )
-
   fig = go.Figure(
-      data=[edge_trace, weight_trace, node_trace, text_trace],
+      data=[edge_trace, weight_trace, node_trace],
       layout=go.Layout(
           showlegend=False,
           hovermode="closest",
@@ -163,56 +155,67 @@ if st.session_state.game_started:
       ),
   )
 
-  # คำนวณระยะทางเริ่มต้น
-  current_user_path = st.session_state.user_path
-  total_user_dist = 0
-  for i in range(len(current_user_path) - 1):
-    u = current_user_path[i]
-    v = current_user_path[i + 1]
-    total_user_dist += G[u][v]["weight"]
-
   # แสดงกราฟและดักจับการคลิกเมาส์
   st.write("👇 **คลิกที่โหนดบนแผนภาพเพื่อเดินทีละก้าว:**")
   selected_point = plotly_events(
       fig, click_event=True, hover_event=False, override_height=450
   )
 
-  # จัดการคลิกโหนดผ่าน pointIndex ของ node_trace (ซึ่งอยู่ใน index ที่ 2)
+  # ถ้ามีการคลิกที่โหนด
   if selected_point:
     if selected_point[0].get("curveNumber") == 2:
-      clicked_idx = selected_point[0].get("pointIndex")
-      if clicked_idx is not None and clicked_idx < len(nodes_list):
-        clicked_node = nodes_list[clicked_idx]
-        last_node = st.session_state.user_path[-1]
+      clicked_idx = selected_point[0]["pointIndex"]
+      clicked_node = list(G.nodes())[clicked_idx]
+      last_node = st.session_state.user_path[-1]
 
-        if clicked_node == last_node and len(st.session_state.user_path) > 1:
-          st.session_state.user_path.pop()
-          st.rerun()
-        elif G.has_edge(last_node, clicked_node):
-          st.session_state.user_path.append(clicked_node)
-          st.rerun()
+      if clicked_node == last_node:
+        st.warning(f"คุณอยู่ที่โหนด {clicked_node} แล้ว")
+      elif G.has_edge(last_node, clicked_node):
+        st.session_state.user_path.append(clicked_node)
+        st.session_state.submitted = (
+            False  # รีเซ็ตการคอนเฟิร์มหากมีการเปลี่ยนเส้นทาง
+        )
+        st.rerun()
+      else:
+        st.error(
+            f"❌ ไม่มีเส้นทางเชื่อมตรงจากโหนด {last_node} ไปยัง {clicked_node}"
+        )
+
+  # คำนวณระยะทางที่ผู้เล่นเดินสะสม
+  current_user_path = st.session_state.user_path
+  total_user_dist = 0
+
+  for i in range(len(current_user_path) - 1):
+    u = current_user_path[i]
+    v = current_user_path[i + 1]
+    total_user_dist += G[u][v]["weight"]
 
   st.markdown("---")
-  path_display = " ➔ ".join([str(n) for n in current_user_path])
+  path_display = " ➔ ".join(str(n) for n in current_user_path)
   st.write(f"🚶‍♂️ **เส้นทางที่คุณเดินปัจจุบัน:** {path_display}")
   st.write(f"ระยะทางรวมที่คุณเดินตอนนี้: **{total_user_dist} หน่วย**")
 
-  # ปุ่มยืนยันคำตอบในตอนท้าย
-  if st.button("🏁 ยืนยันคำตอบ (Confirm Path)"):
-    if len(current_user_path) <= 1:
-      st.warning("⚠️ กรุณาคลิกเลือกเส้นทางเดินอย่างน้อย 1 ก้าว")
-    elif current_user_path[-1] != end_node:
-      st.warning(
-          f"⚠️ ยังเดินไม่ถึงจุดปลายทาง! (ปัจจุบันอยู่ที่โหนด {current_user_path[-1]}"
-          f" แต่เป้าหมายคือโหนด {end_node})"
-      )
+  # หากเดินถึงโหนดปลายทางแล้ว ให้แสดงปุ่มคอนเฟิร์ม
+  if current_user_path[-1] == end_node:
+    st.success(
+        "🎯 คุณเดินมาถึงจุดปลายทางแล้ว! กดปุ่มด้านล่างเพื่อยืนยันและตรวจคำตอบ"
+    )
+    if not st.session_state.submitted:
+      if st.button("🏁 ยืนยันคำตอบ (Confirm Path)"):
+        st.session_state.submitted = True
+        st.rerun()
     else:
+      # แสดงผลการตรวจเมื่อกดปุ่มคอนเฟิร์มแล้วเท่านั้น
       if total_user_dist == optimal_dist:
         st.balloons()
-        st.success("🎉 ยินดีด้วย! คุณหาเส้นทางที่สั้นที่สุดได้ถูกต้องและยอดเยี่ยมมาก!")
+        st.success(
+            "🎉 ยินดีด้วย! คุณหาเส้นทางที่สั้นที่สุดได้ถูกต้องและยอดเยี่ยมมาก!"
+        )
       else:
-        optimal_str = " ➔ ".join([str(n) for n in optimal_path])
+        optimal_str = " ➔ ".join(str(n) for n in optimal_path)
         st.info(
             f"🏁 ผลลัพธ์: ระยะทางรวมของคุณคือ {total_user_dist} หน่วย"
             f" (เส้นทางที่สั้นที่สุดจริง ๆ คือ {optimal_dist} หน่วย: {optimal_str})"
         )
+  else:
+    st.info("💡 เดินทางต่อไปให้ถึงโหนดปลายทาง (Finish) เพื่อทำการยืนยันคำตอบ")
