@@ -33,7 +33,7 @@ def generate_new_game():
   st.session_state.G = G
   st.session_state.start_node = nodes[0]
   st.session_state.end_node = nodes[-1]
-  st.session_state.user_path = [nodes[0]]  # เริ่มต้นเก็บประวัติการคลิกที่ Start
+  st.session_state.user_path = [nodes[0]]
   st.session_state.game_started = True
 
 
@@ -69,16 +69,14 @@ if st.session_state.game_started:
   # สร้าง Layout สำหรับพล็อตด้วย Plotly
   pos = nx.spring_layout(G, seed=42)
 
-  # วาดเส้นเชื่อม (Edges)
+  # 1. วาดเส้นเชื่อม (Edges)
   edge_x = []
   edge_y = []
-  edge_text = []
   for u, v, d in G.edges(data=True):
     x0, y0 = pos[u]
     x1, y1 = pos[v]
     edge_x.extend([x0, x1, None])
     edge_y.extend([y0, y1, None])
-    edge_text.append(d["weight"])
 
   edge_trace = go.Scatter(
       x=edge_x,
@@ -88,7 +86,27 @@ if st.session_state.game_started:
       mode="lines",
   )
 
-  # วาดโหนด (Nodes)
+  # 2. เพิ่มตัวเลขแสดงระยะทาง (Weight) ไว้ตรงกลางเส้นเชื่อม
+  weight_x = []
+  weight_y = []
+  weight_text = []
+  for u, v, d in G.edges(data=True):
+    x0, y0 = pos[u]
+    x1, y1 = pos[v]
+    weight_x.append((x0 + x1) / 2)
+    weight_y.append((y0 + y1) / 2)
+    weight_text.append(str(d["weight"]))
+
+  weight_trace = go.Scatter(
+      x=weight_x,
+      y=weight_y,
+      mode="text",
+      text=weight_text,
+      textfont=dict(color="red", size=14, family="sans-serif"),
+      hoverinfo="none",
+  )
+
+  # 3. วาดโหนด (Nodes)
   node_x = []
   node_y = []
   node_text = []
@@ -124,7 +142,7 @@ if st.session_state.game_started:
   )
 
   fig = go.Figure(
-      data=[edge_trace, node_trace],
+      data=[edge_trace, weight_trace, node_trace],
       layout=go.Layout(
           showlegend=False,
           hovermode="closest",
@@ -135,50 +153,4 @@ if st.session_state.game_started:
   )
 
   # แสดงกราฟและดักจับการคลิกเมาส์
-  st.write("👇 **คลิกที่โหนดบนแผนภาพด้านล่างเพื่อเลือกเดินทีละก้าว:**")
-  selected_point = plotly_events(
-      fig, click_event=True, hover_event=False, override_height=450
-  )
-
-  # ถ้ามีการคลิกที่โหนด
-  if selected_point:
-    clicked_idx = selected_point[0]["pointIndex"]
-    clicked_node = list(G.nodes())[clicked_idx]
-    last_node = st.session_state.user_path[-1]
-
-    # ตรวจสอบว่าโหนดที่คลิกมีเส้นเชื่อมถึงกันหรือไม่
-    if clicked_node == last_node:
-      st.warning(f"คุณอยู่ที่โหนด {clicked_node} แล้ว")
-    elif G.has_edge(last_node, clicked_node):
-      st.session_state.user_path.append(clicked_node)
-      st.rerun()
-    else:
-      st.error(f"❌ ไม่มีเส้นทางเชื่อมตรงจากโหนด {last_node} ไปยัง {clicked_node}")
-
-  # คำนวณระยะทางที่ผู้เล่นเดินสะสม
-  current_user_path = st.session_state.user_path
-  total_user_dist = 0
-
-  for i in range(len(current_user_path) - 1):
-    u = current_user_path[i]
-    v = current_user_path[i + 1]
-    total_user_dist += G[u][v]["weight"]
-
-  st.markdown("---")
-  st.write(
-      "🚶‍♂️ **เส้นทางที่คุณเดินปัจจุบัน:**",
-      " ➔ ".join(str(n) for n in current_user_path),
-  )
-  st.success(f"ระยะทางรวมที่คุณเดินตอนนี้: **{total_user_dist} หน่วย**")
-
-  # ตรวจสอบว่าเดินถึงเป้าหมายหรือยัง
-  if current_user_path[-1] == end_node:
-    if total_user_dist == optimal_dist:
-      st.balloons()
-      st.success("🎉 ยินดีด้วย! คุณเดินถึงปลายทางและเลือกเส้นทางที่สั้นที่สุดพอดีเป๊ะ!")
-    else:
-      optimal_str = " ➔ ".join(str(n) for n in optimal_path)
-      st.info(
-          f"🏁 เดินถึงเป้าหมายแล้ว! ระยะทางรวมของคุณคือ {total_user_dist} หน่วย"
-          f" (เส้นทางที่สั้นที่สุดของ Dijkstra คือ {optimal_dist} หน่วย: {optimal_str})"
-      )
+  st.write("
