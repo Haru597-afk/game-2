@@ -8,8 +8,7 @@ st.set_page_config(page_title="Shortest Path Click Game", layout="centered")
 
 st.title("🗺️ เกมคลิกเลือกเส้นทางที่สั้นที่สุด (Shortest Path Click Game)")
 st.write(
-    "กติกา: ระบบจะสุ่มกราฟ จุดเริ่มต้น และจุดปลายทางให้ "
-    "ให้คุณใช้เมาส์คลิกที่โหนดบนรูปแผนภาพเพื่อเดินตามเส้นทาง แล้วระบบจะรวมระยะทางให้ทันที!"
+    "กติกา: ระบบจะสุ่มกราฟ จุดเริ่มต้น และจุดปลายทางให้ ให้คุณใช้เมาส์คลิกที่โหนดบนรูปแผนภาพเพื่อเดินตามเส้นทาง แล้วระบบจะรวมระยะทางให้ทันที!"
 )
 
 # 1) ตั้งค่าสถานะเกมด้วย st.session_state
@@ -153,4 +152,48 @@ if st.session_state.game_started:
   )
 
   # แสดงกราฟและดักจับการคลิกเมาส์
-  st.write("
+  st.write("👇 **คลิกที่โหนดบนแผนภาพด้านล่างเพื่อเลือกเดินทีละก้าว:**")
+  selected_point = plotly_events(
+      fig, click_event=True, hover_event=False, override_height=450
+  )
+
+  # ถ้ามีการคลิกที่โหนด
+  if selected_point:
+    if selected_point[0].get("curveNumber") == 2:
+      clicked_idx = selected_point[0]["pointIndex"]
+      clicked_node = list(G.nodes())[clicked_idx]
+      last_node = st.session_state.user_path[-1]
+
+      if clicked_node == last_node:
+        st.warning(f"คุณอยู่ที่โหนด {clicked_node} แล้ว")
+      elif G.has_edge(last_node, clicked_node):
+        st.session_state.user_path.append(clicked_node)
+        st.rerun()
+      else:
+        st.error(
+            f"❌ ไม่มีเส้นทางเชื่อมตรงจากโหนด {last_node} ไปยัง {clicked_node}"
+        )
+
+  # คำนวณระยะทางที่ผู้เล่นเดินสะสม
+  current_user_path = st.session_state.user_path
+  total_user_dist = 0
+
+  for i in range(len(current_user_path) - 1):
+    u = current_user_path[i]
+    v = current_user_path[i + 1]
+    total_user_dist += G[u][v]["weight"]
+
+  st.markdown("---")
+  path_display = " ➔ ".join(str(n) for n in current_user_path)
+  st.write(f"🚶‍♂️ **เส้นทางที่คุณเดินปัจจุบัน:** {path_display}")
+  st.success(f"ระยะทางรวมที่คุณเดินตอนนี้: **{total_user_dist} หน่วย**")
+
+  # ตรวจสอบว่าเดินถึงเป้าหมายหรือยัง
+  if current_user_path[-1] == end_node:
+    if total_user_dist == optimal_dist:
+      st.balloons()
+      st.success("🎉 ยินดีด้วย! คุณเดินถึงปลายทางและเลือกเส้นทางที่สั้นที่สุดพอดีเป๊ะ!")
+    else:
+      optimal_str = " ➔ ".join(str(n) for n in optimal_path)
+      st.info(
+          f"🏁 เดินถึงเป้าหมายแล้ว! ระยะทางรวมของคุณคือ {total_user_dist} หน่วย
