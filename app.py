@@ -1,14 +1,15 @@
-import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+import plotly.graph_objects as go
 import streamlit as st
+from streamlit_plotly_events import plotly_events
 
-st.set_page_config(page_title="Shortest Path Game", layout="centered")
+st.set_page_config(page_title="Shortest Path Click Game", layout="centered")
 
-st.title("🗺️ เกมเลือกเส้นทางที่สั้นที่สุด (Shortest Path Game)")
+st.title("🗺️ เกมคลิกเลือกเส้นทางที่สั้นที่สุด (Shortest Path Click Game)")
 st.write(
     "กติกา: ระบบจะสุ่มกราฟ จุดเริ่มต้น และจุดปลายทางให้ "
-    "ให้คุณเลือกเส้นทางเดินจากรายการด้านล่างรวดเดียวให้ครบถ้วน แล้วกดปุ่มยืนยันเพื่อตรวจคะแนน!"
+    "ให้คุณใช้เมาส์คลิกที่โหนดบนแผนภาพเพื่อเดินทีละก้าว จากนั้นกดปุ่มยืนยันด้านล่างเพื่อตรวจคะแนน!"
 )
 
 # 1) ตั้งค่าสถานะเกมด้วย st.session_state
@@ -32,6 +33,7 @@ def generate_new_game():
   st.session_state.G = G
   st.session_state.start_node = nodes[0]
   st.session_state.end_node = nodes[-1]
+  st.session_state.user_path = [nodes[0]]
   st.session_state.game_started = True
 
 
@@ -64,90 +66,138 @@ if st.session_state.game_started:
       G, source=start_node, target=end_node, weight="weight"
   )
 
-  # ให้ผู้เล่นเลือกเส้นทางแบบรวดเดียวจบด้วย multiselect (ไม่มีการรีเฟรชหน้าจอระหว่างเลือก)
-  all_nodes = list(G.nodes())
-  user_selected_path = st.multiselect(
-      "👇 เลือกโหนดลำดับเส้นทางที่คุณต้องการเดิน (เริ่มต้นจาก Start ไปจนถึง Finish):",
-      all_nodes,
-      default=[start_node],
-  )
-
-  # คำนวณระยะทางและตรวจสอบเส้นทางแบบเรียลไทม์ (ไม่แสดงคำเตือนน่ารำคาญ)
-  total_user_dist = 0
-  is_valid_structure = True
-
-  if len(user_selected_path) > 1:
-    for i in range(len(user_selected_path) - 1):
-      u = user_selected_path[i]
-      v = user_selected_path[i + 1]
-      if G.has_edge(u, v):
-        total_user_dist += G[u][v]["weight"]
-      else:
-        is_valid_structure = False
-
-  # แสดงผลรูปกราฟด้วย Matplotlib (พร้อมตัวเลขบอกระยะทางชัดเจน)
-  fig, ax = plt.subplots(figsize=(8, 5))
+  # สร้าง Layout สำหรับพล็อตด้วย Plotly
   pos = nx.spring_layout(G, seed=42)
 
-  # วาดเส้นเชื่อมทั้งหมด
-  nx.draw_networkx_edges(
-      G, pos, edgelist=G.edges(), width=2, edge_color="gray", ax=ax
+  # 1. วาดเส้นเชื่อม (Edges)
+  edge_x = []
+  edge_y = []
+  for u, v, d in G.edges(data=True):
+    x0, y0 = pos[u]
+    x1, y1 = pos[v]
+    edge_x.extend([x0, x1, None])
+    edge_y.extend([y0, y1, None])
+
+  edge_trace = go.Scatter(
+      x=edge_x,
+      y=edge_y,
+      line=dict(width=2, color="#888"),
+      hoverinfo="none",
+      mode="lines",
   )
 
-  # ไฮไลต์เส้นทางที่ผู้เล่นเลือกด้วยสีฟ้า
-  if len(user_selected_path) > 1:
-    user_edges = list(zip(user_selected_path[:-1], user_selected_path[1:]))
-    nx.draw_networkx_edges(
-        G, pos, edgelist=user_edges, width=4, edge_color="blue", ax=ax
-    )
+  # 2. เพิ่มตัวเลขแสดงระยะทาง (Weight) ไว้ตรงกลางเส้นเชื่อม
+  weight_x = []
+  weight_y = []
+  weight_text = []
+  for u, v, d in G.edges(data=True):
+    x0, y0 = pos[u]
+    x1, y1 = pos[v]
+    weight_x.append((x0 + x1) / 2)
+    weight_y.append((y0 + y1) / 2)
+    weight_text.append(str(d["weight"]))
 
-  # วาดโหนด (Start สีเขียว, Finish สีส้ม)
-  nx.draw_networkx_nodes(
-      G, pos, node_color="lightblue", node_size=700, ax=ax
-  )
-  nx.draw_networkx_nodes(
-      G, pos, nodelist=[start_node], node_color="lightgreen", node_size=800, ax=ax
-  )
-  nx.draw_networkx_nodes(
-      G, pos, nodelist=[end_node], node_color="orange", node_size=800, ax=ax
-  )
-  nx.draw_networkx_labels(G, pos, font_size=12, font_weight="bold", ax=ax)
-
-  # แสดงน้ำหนัก (Weight) บนเส้นเชื่อม
-  edge_weights = nx.get_edge_attributes(G, "weight")
-  nx.draw_networkx_edge_labels(
-      G, pos, edge_labels=edge_weights, font_color="red", font_size=12, ax=ax
+  weight_trace = go.Scatter(
+      x=weight_x,
+      y=weight_y,
+      mode="text",
+      text=weight_text,
+      textfont=dict(color="red", size=14, family="sans-serif"),
+      hoverinfo="none",
   )
 
-  ax.axis("off")
-  st.pyplot(fig)
-  plt.close(fig)
+  # 3. วาดโหนด (Nodes)
+  node_x = []
+  node_y = []
+  node_text = []
+  node_colors = []
+
+  for node in G.nodes():
+    x, y = pos[node]
+    node_x.append(x)
+    node_y.append(y)
+    node_text.append(str(node))
+    if node == start_node:
+      node_colors.append("lightgreen")
+    elif node == end_node:
+      node_colors.append("orange")
+    elif node in st.session_state.user_path:
+      node_colors.append("skyblue")
+    else:
+      node_colors.append("white")
+
+  node_trace = go.Scatter(
+      x=node_x,
+      y=node_y,
+      mode="markers+text",
+      text=node_text,
+      textposition="top center",
+      hoverinfo="text",
+      marker=dict(
+          showscale=False,
+          color=node_colors,
+          size=35,
+          line=dict(width=2, color="black"),
+      ),
+  )
+
+  fig = go.Figure(
+      data=[edge_trace, weight_trace, node_trace],
+      layout=go.Layout(
+          showlegend=False,
+          hovermode="closest",
+          margin=dict(b=20, l=20, r=20, t=20),
+          xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+          yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+      ),
+  )
+
+  # แสดงกราฟและดักจับการคลิกเมาส์ที่โหนด
+  st.write("👇 **คลิกที่โหนดบนแผนภาพด้านล่างเพื่อเดินทีละก้าว:**")
+  selected_point = plotly_events(
+      fig, click_event=True, hover_event=False, override_height=450
+  )
+
+  # จัดการคลิกโหนดแบบลื่นไหล (คลิกซ้ำเพื่อ Undo ได้)
+  if selected_point:
+    if selected_point[0].get("curveNumber") == 2:
+      clicked_idx = selected_point[0]["pointIndex"]
+      clicked_node = list(G.nodes())[clicked_idx]
+      last_node = st.session_state.user_path[-1]
+
+      if clicked_node == last_node and len(st.session_state.user_path) > 1:
+        st.session_state.user_path.pop()  # ย้อนกลับก้าวล่าสุด
+        st.rerun()
+      elif G.has_edge(last_node, clicked_node):
+        st.session_state.user_path.append(clicked_node)  # เดินไปโหนดถัดไป
+        st.rerun()
+
+  # คำนวณระยะทางที่ผู้เล่นเดินสะสม
+  current_user_path = st.session_state.user_path
+  total_user_dist = 0
+
+  for i in range(len(current_user_path) - 1):
+    u = current_user_path[i]
+    v = current_user_path[i + 1]
+    total_user_dist += G[u][v]["weight"]
 
   st.markdown("---")
-  path_display = " ➔ ".join(str(n) for n in user_selected_path)
-  st.write(f"🚶‍♂️ **เส้นทางที่คุณเลือก:** {path_display}")
-  st.write(f"ระยะทางรวมที่คุณเดิน: **{total_user_dist} หน่วย**")
+  path_display = " ➔ ".join(str(n) for n in current_user_path)
+  st.write(f"🚶‍♂️ **เส้นทางที่คุณเดินปัจจุบัน:** {path_display}")
+  st.write(f"ระยะทางรวมที่คุณเดินตอนนี้: **{total_user_dist} หน่วย**")
 
   # ปุ่มยืนยันคำตอบในตอนท้าย
-  if st.button("🏁 ยืนยันคำตอบเพื่อตรวจคะแนน (Confirm)"):
-    if len(user_selected_path) <= 1:
-      st.warning("⚠️ กรุณาเลือกเส้นทางเดินอย่างน้อย 1 ก้าว")
-    elif user_selected_path[0] != start_node or user_selected_path[-1] != end_node:
-      st.error(
-          f"❌ เส้นทางไม่ถูกต้อง: ต้องเริ่มต้นที่โหนด {start_node} และสิ้นสุดที่โหนด"
-          f" {end_node}"
+  if st.button("🏁 ยืนยันคำตอบ (Confirm Path)"):
+    if len(current_user_path) <= 1:
+      st.warning("⚠️ กรุณาคลิกเลือกเส้นทางเดินอย่างน้อย 1 ก้าว")
+    elif current_user_path[-1] != end_node:
+      st.warning(
+          f"⚠️ ยังเดินไม่ถึงจุดปลายทาง! (ปัจจุบันอยู่ที่โหนด {current_user_path[-1]}"
+          f" แต่เป้าหมายคือโหนด {end_node})"
       )
-    elif not is_valid_structure:
-      st.error("❌ เส้นทางไม่ถูกต้อง: มีบางช่วงที่ไม่มีเส้นเชื่อมถึงกันโดยตรง!")
     else:
       if total_user_dist == optimal_dist:
         st.balloons()
-        st.success(
-            "🎉 ยินดีด้วย! คุณเลือกเส้นทางที่สั้นที่สุดได้อย่างยอดเยี่ยมที่สุด!"
-        )
+        st.success("🎉 ยินดีด้วย! คุณหาเส้นทางที่สั้นที่สุดได้ถูกต้องและยอดเยี่ยมมาก!")
       else:
-        optimal_str = " ➔ ".join(str(n) for n in optimal_path)
-        st.info(
-            f"🏁 ระยะทางรวมของคุณคือ {total_user_dist} หน่วย (เส้นทางที่สั้นที่สุดที่แท้จริงคือ"
-            f" {optimal_dist} หน่วย ได้แก่: {optimal_str})"
-        )
+        optimal_str = " ➔ ".join(str
