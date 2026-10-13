@@ -8,25 +8,61 @@ st.set_page_config(page_title="Shortest Path Click Game", layout="centered")
 
 st.title("🗺️ เกมคลิกเลือกเส้นทางที่สั้นที่สุด (Shortest Path Click Game)")
 st.write(
-    "กติกา: ระบบจะสุ่มกราฟ จุดเริ่มต้น และจุดปลายทางให้ "
-    "ให้คุณใช้เมาส์คลิกที่โหนดเพื่อเดินไปจนถึงเป้าหมาย โดยระบบจะไม่เฉลยความถูกต้องระหว่างทาง "
-    "ให้กดปุ่มยืนยันในตอนท้ายเพื่อตรวจคำตอบ!"
+    "กติกา: เลือกรูปแบบกราฟและกดเริ่มเกม จากนั้นคลิกที่โหนดเพื่อเดินไปยังเป้าหมาย "
+    "โดยระบบจะไม่เฉลยระหว่างทาง ให้กดปุ่มยืนยันในตอนท้ายเพื่อตรวจคำตอบ!"
 )
 
 # 1) ตั้งค่าสถานะเกมด้วย st.session_state
 if "game_started" not in st.session_state:
     st.session_state.game_started = False
 
+# เพิ่มตัวเลือกรูปแบบกราฟใน Sidebar หรือส่วนหัว
+graph_type = st.selectbox(
+    "เลือกรูปแบบกราฟ (Graph Topology)",
+    [
+        "สุ่มทั่วไป (Erdos-Renyi)",
+        "กราฟตาราง (Grid Graph)",
+        "กราฟวงแหวน (Cycle & Chords)",
+        "กราฟต้นไม้ (Balanced Tree)",
+        "กราฟสมบูรณ์ (Complete Graph)",
+    ],
+)
 
-def generate_new_game():
-    n = 6
+
+def generate_new_game(g_type):
     seed = np.random.randint(1, 1000)
-    G = nx.erdos_renyi_graph(n, 0.45, seed=seed)
-    while not nx.is_connected(G):
-        seed = np.random.randint(1, 1000)
-        G = nx.erdos_renyi_graph(n, 0.45, seed=seed)
-
     np.random.seed(seed)
+
+    if g_type == "กราฟตาราง (Grid Graph)":
+        # สร้าง Grid 2x3 หรือ 3x3 (ใช้ m=2, n=3 ให้มี 6 โหนด)
+        G = nx.grid_2d_graph(2, 3)
+        # เปลี่ยนชื่อโหนดจาก tuple (x,y) เป็นตัวเลข 0 ถึง 5 เพื่อให้ใช้ง่าย
+        mapping = {node: i for i, node in enumerate(G.nodes())}
+        G = nx.relabel_nodes(G, mapping)
+    elif g_type == "กราฟวงแหวน (Cycle & Chords)":
+        n = 6
+        G = nx.cycle_graph(n)
+        # เพิ่มเส้นเชื่อมทแยงมุมเพิ่มความท้าทาย
+        if seed % 2 == 0:
+            G.add_edge(0, 3)
+            G.add_edge(1, 4)
+        else:
+            G.add_edge(0, 4)
+            G.add_edge(1, 3)
+    elif g_type == "กราฟต้นไม้ (Balanced Tree)":
+        # r=2, h=2 ให้ได้ 7 โหนด (หรือปรับตามต้องการ)
+        G = nx.balanced_tree(2, 2)
+    elif g_type == "กราฟสมบูรณ์ (Complete Graph)":
+        n = 5
+        G = nx.complete_graph(n)
+    else:  # สุ่มทั่วไป (Erdos-Renyi)
+        n = 6
+        G = nx.erdos_renyi_graph(n, 0.45, seed=seed)
+        while not nx.is_connected(G):
+            seed = np.random.randint(1, 1000)
+            G = nx.erdos_renyi_graph(n, 0.45, seed=seed)
+
+    # สุ่มค่าน้ำหนัก (Weight) ให้กับทุกเส้นเชื่อม
     for u, v in G.edges():
         G[u][v]["weight"] = int(np.random.randint(1, 20))
 
@@ -42,8 +78,11 @@ def generate_new_game():
 # ปุ่มเริ่มเกมหรือสุ่มแผนที่ใหม่
 col_b1, col_b2 = st.columns(2)
 with col_b1:
-    if st.button("🎮 เริ่มเกมใหม่ / สุ่มแผนที่") or not st.session_state.game_started:
-        generate_new_game()
+    if (
+        st.button("🎮 เริ่มเกมใหม่ / สุ่มแผนที่")
+        or not st.session_state.game_started
+    ):
+        generate_new_game(graph_type)
         st.rerun()
 with col_b2:
     if st.button("🔄 รีเซ็ตเส้นทางที่เดิน"):
@@ -68,8 +107,13 @@ if st.session_state.game_started:
         G, source=start_node, target=end_node, weight="weight"
     )
 
-    # สร้าง Layout สำหรับพล็อตด้วย Plotly
-    pos = nx.spring_layout(G, seed=42)
+    # กำหนด Layout ตามรูปแบบกราฟเพื่อให้แสดงผลสวยงามขึ้น
+    if "Grid Graph" in graph_type:
+        pos = nx.spring_layout(G, seed=42)
+    elif "Balanced Tree" in graph_type:
+        pos = nx.spring_layout(G, seed=42)
+    else:
+        pos = nx.spring_layout(G, seed=42)
 
     # 1. วาดเส้นเชื่อม (Edges)
     edge_x = []
@@ -164,7 +208,7 @@ if st.session_state.game_started:
     if selected_point:
         if selected_point[0].get("curveNumber") == 2:
             clicked_idx = selected_point[0]["pointIndex"]
-            clicked_node = int(node_text[clicked_idx])
+            clicked_node = list(G.nodes())[clicked_idx]
             last_node = st.session_state.user_path[-1]
 
             if clicked_node == last_node:
