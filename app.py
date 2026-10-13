@@ -139,4 +139,26 @@ if st.session_state.game_started:
 
     node_x = []
     node_y = []
-    node_text
+    node_text = []
+    node_colors = []
+
+    for node in G.nodes():
+        x, y = pos[node]
+        node_x.append(x)
+        node_y.append(y)
+        node_text.append(str(node))
+        if node == start_node:
+            node_colors.append("lightgreen")
+        elif node == end_node:
+            node_colors.append("orange")
+        elif node in st.session_state.user_path:
+            node_colors.append("skyblue")
+        else:
+            node_colors.append("white")
+
+    node_trace = go.Scatter(
+        x=node_x,
+        y=node_y,
+        mode="markers+text",
+        text=node_text,
+        textposition="top center
