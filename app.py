@@ -8,8 +8,7 @@ st.set_page_config(page_title="Shortest Path Click Game", layout="centered")
 
 st.title("🗺️ เกมคลิกเลือกเส้นทางที่สั้นที่สุด (Shortest Path Click Game)")
 st.write(
-    "กติกา: ระบบจะสุ่มกราฟ จุดเริ่มต้น และจุดปลายทางให้ "
-    "ให้คุณใช้เมาส์คลิกที่โหนดบนแผนภาพเพื่อเดินทีละก้าว จากนั้นกดปุ่มยืนยันด้านล่างเพื่อตรวจคะแนน!"
+    "กติกา: ระบบจะสุ่มกราฟ จุดเริ่มต้น และจุดปลายทางให้ ให้คุณใช้เมาส์คลิกที่โหนดบนแผนภาพเพื่อเดินทีละก้าว จากนั้นกดปุ่มยืนยันด้านล่างเพื่อตรวจคะแนน!"
 )
 
 # 1) ตั้งค่าสถานะเกมด้วย st.session_state
@@ -54,11 +53,11 @@ if st.session_state.game_started:
   end_node = st.session_state.end_node
 
   st.info(
-      f"🎯 จุดเริ่มต้น (Start): โหนด **{start_node}**  ➔  จุดปลายทาง (Finish): โหนด"
-      f" **{end_node}**"
+      f"🎯 จุดเริ่มต้น (Start): โหนด {start_node} ➔ จุดปลายทาง (Finish): โหนด"
+      f" {end_node}"
   )
 
-  # คำนวณเส้นทางที่สั้นที่สุดด้วย Dijkstra (เก็บไว้ตรวจตอนกดคอนเฟิร์ม)
+  # คำนวณเส้นทางที่สั้นที่สุดด้วย Dijkstra
   optimal_path = nx.shortest_path(
       G, source=start_node, target=end_node, weight="weight"
   )
@@ -166,10 +165,10 @@ if st.session_state.game_started:
       last_node = st.session_state.user_path[-1]
 
       if clicked_node == last_node and len(st.session_state.user_path) > 1:
-        st.session_state.user_path.pop()  # ย้อนกลับก้าวล่าสุด
+        st.session_state.user_path.pop()
         st.rerun()
       elif G.has_edge(last_node, clicked_node):
-        st.session_state.user_path.append(clicked_node)  # เดินไปโหนดถัดไป
+        st.session_state.user_path.append(clicked_node)
         st.rerun()
 
   # คำนวณระยะทางที่ผู้เล่นเดินสะสม
@@ -182,7 +181,7 @@ if st.session_state.game_started:
     total_user_dist += G[u][v]["weight"]
 
   st.markdown("---")
-  path_display = " ➔ ".join(str(n) for n in current_user_path)
+  path_display = " ➔ ".join([str(n) for n in current_user_path])
   st.write(f"🚶‍♂️ **เส้นทางที่คุณเดินปัจจุบัน:** {path_display}")
   st.write(f"ระยะทางรวมที่คุณเดินตอนนี้: **{total_user_dist} หน่วย**")
 
@@ -200,4 +199,8 @@ if st.session_state.game_started:
         st.balloons()
         st.success("🎉 ยินดีด้วย! คุณหาเส้นทางที่สั้นที่สุดได้ถูกต้องและยอดเยี่ยมมาก!")
       else:
-        optimal_str = " ➔ ".join(str
+        optimal_str = " ➔ ".join([str(n) for n in optimal_path])
+        st.info(
+            f"🏁 ผลลัพธ์: ระยะทางรวมของคุณคือ {total_user_dist} หน่วย"
+            f" (เส้นทางที่สั้นที่สุดจริง ๆ คือ {optimal_dist} หน่วย: {optimal_str})"
+        )
