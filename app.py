@@ -5,10 +5,7 @@ import pandas as pd
 import streamlit as st
 
 # 1) Page setup
-st.set_page_config(
-    page_title="🎮 Shortest Path Challenge Game",
-    page_layout="wide",
-)
+st.set_page_config(page_title="Shortest Path Challenge Game", page_layout="wide")
 
 st.title("🎮 Shortest Path Challenge Game (ทฤษฎีกราฟ)")
 st.write(
@@ -88,7 +85,6 @@ def build_game_graph(g_type, **kwargs):
     s = kwargs.get("seed_val", 42)
     G = nx.erdos_renyi_graph(n, 0.45, seed=s)
     if not nx.is_connected(G):
-      # เชื่อมโหนดที่ขาดถ้ากราฟไม่เชื่อมกัน
       components = list(nx.connected_components(G))
       for i in range(len(components) - 1):
         u = list(components[i])[0]
@@ -166,11 +162,10 @@ nx.draw_networkx_nodes(
 if path_found:
   nx.draw_networkx_nodes(
       G, pos, nodelist=[start_node], node_color="#2ecc71", node_size=900, ax=ax
-  )  # สีเขียว = Start
+  )
   nx.draw_networkx_nodes(
       G, pos, nodelist=[end_node], node_color="#e74c3c", node_size=900, ax=ax
-  )  # สีแดง = End
-  # ไฮไลต์โหนดกลางทาง
+  )
   mid_nodes = [n for n in shortest_path if n not in (start_node, end_node)]
   if mid_nodes:
     nx.draw_networkx_nodes(
