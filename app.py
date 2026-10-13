@@ -92,7 +92,7 @@ if st.session_state.game_started:
   node_x = []
   node_y = []
   node_text = []
-  node_color = []
+  node_colors = []
 
   for node in G.nodes():
     x, y = pos[node]
@@ -100,13 +100,13 @@ if st.session_state.game_started:
     node_y.append(y)
     node_text.append(str(node))
     if node == start_node:
-      node_color("lightgreen")
+      node_colors.append("lightgreen")
     elif node == end_node:
-      node_color("orange")
+      node_colors.append("orange")
     elif node in st.session_state.user_path:
-      node_color("lightblue")
+      node_colors.append("skyblue")
     else:
-      node_color("white")
+      node_colors.append("white")
 
   node_trace = go.Scatter(
       x=node_x,
@@ -117,7 +117,7 @@ if st.session_state.game_started:
       hoverinfo="text",
       marker=dict(
           showscale=False,
-          color="skyblue",
+          color=node_colors,
           size=35,
           line=dict(width=2, color="black"),
       ),
@@ -158,7 +158,6 @@ if st.session_state.game_started:
   # คำนวณระยะทางที่ผู้เล่นเดินสะสม
   current_user_path = st.session_state.user_path
   total_user_dist = 0
-  valid_walk = True
 
   for i in range(len(current_user_path) - 1):
     u = current_user_path[i]
