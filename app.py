@@ -103,4 +103,40 @@ else:
   )
 
   # ไฮไลต์เส้นทางที่ผู้เล่นเลือกด้วยสีฟ้า
-  if valid_path and len(user_selected_path) >
+  if valid_path and (len(user_selected_path) > 1):
+    user_edges = list(zip(user_selected_path[:-1], user_selected_path[1:]))
+    nx.draw_networkx_edges(
+        G, pos, edgelist=user_edges, width=4, edge_color="blue", ax=ax
+    )
+
+  # วาดโหนด
+  nx.draw_networkx_nodes(
+      G, pos, node_color="lightblue", node_size=700, ax=ax
+  )
+  nx.draw_networkx_nodes(
+      G, pos, nodelist=[start_node], node_color="lightgreen", node_size=800, ax=ax
+  )
+  nx.draw_networkx_nodes(
+      G, pos, nodelist=[end_node], node_color="orange", node_size=800, ax=ax
+  )
+  nx.draw_networkx_labels(G, pos, font_size=12, ax=ax)
+
+  edge_weights = nx.get_edge_attributes(G, "weight")
+  nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_weights, ax=ax)
+
+  ax.axis("off")
+  st.pyplot(fig)
+  plt.close(fig)
+
+  # แสดงผลการคำนวณระยะทาง
+  if valid_path and (len(user_selected_path) > 1):
+    st.success(f"ระยะทางที่คุณเดินรวมทั้งหมด: {total_user_dist} หน่วย")
+    if user_selected_path[-1] == end_node:
+      if total_user_dist == optimal_dist:
+        st.balloons()
+        st.success("🎉 ยินดีด้วย! คุณหาเส้นทางที่สั้นที่สุดได้พอดีเป๊ะ!")
+      else:
+        path_str = " ➔ ".join(str(n) for n in optimal_path)
+        st.info(
+            f"💡 เส้นทางที่สั้นที่สุดที่เป็นไปได้ (Dijkstra) คือ {optimal_dist} หน่วย (เส้นทาง: {path_str}) ลองปรับเส้นทางดูอีกครั้ง!"
+        )
