@@ -149,4 +149,47 @@ if st.session_state.game_started:
             node_colors.append("white")
 
     node_trace = go.Scatter(
-        x=node
+        x=node_x,
+        y=node_y,
+        mode="markers+text",
+        text=[str(n) for n in G.nodes()],
+        textposition="top center",
+        hoverinfo="text",
+        marker=dict(
+            showscale=False,
+            color=node_colors,
+            size=36,
+            line=dict(width=3, color="black"),
+        ),
+        textfont=dict(size=14, color="black"),
+    )
+
+    fig = go.Figure(
+        data=[edge_trace, weight_trace, node_trace],
+        layout=go.Layout(
+            title=dict(
+                text="แผนผังเครือข่ายเส้นทางพร้อมค่าน้ำหนัก",
+                font=dict(size=16),
+            ),
+            showlegend=False,
+            hovermode="closest",
+            margin=dict(b=20, l=20, r=20, t=40),
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            plot_bgcolor="white",
+            paper_bgcolor="white",
+            height=500,
+        ),
+    )
+
+    st.plotly_chart(fig)
+
+    with st.expander("📋 ตารางแสดงค่าน้ำหนักของทุกเส้นเชื่อมในกราฟนี้"):
+        edge_data = [
+            {
+                "เส้นเชื่อมระหว่างโหนด": f"{u} ⟷ {v}",
+                "ค่าน้ำหนัก (Weight)": G[u][v]["weight"],
+            }
+            for u, v in G.edges()
+        ]
+        st.table(edge_
