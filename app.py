@@ -29,7 +29,6 @@ def generate_new_game(g_type):
     seed = np.random.randint(1, 10000)
     np.random.seed(seed)
 
-    # สุ่มจำนวนโหนดในแต่ละเกมให้อยู่ในช่วง 5 ถึง 10 โหนด
     n = int(np.random.randint(5, 11))
 
     if g_type == "Small-World (Watts-Strogatz)":
@@ -94,4 +93,34 @@ if st.session_state.game_started:
     )
 
     optimal_dist = nx.shortest_path_length(
-        G, source=start_
+        G, source=start_node, target=end_node, weight="weight"
+    )
+    pos = nx.spring_layout(G, seed=42)
+
+    edge_x = []
+    edge_y = []
+    for u, v, d in G.edges(data=True):
+        x0, y0 = pos[u]
+        x1, y1 = pos[v]
+        edge_x.extend([x0, x1, None])
+        edge_y.extend([y0, y1, None])
+
+    edge_trace = go.Scatter(
+        x=edge_x,
+        y=edge_y,
+        line=dict(width=2.5, color="#555"),
+        hoverinfo="none",
+        mode="lines",
+    )
+
+    weight_x = []
+    weight_y = []
+    weight_text = []
+    for u, v, d in G.edges(data=True):
+        x0, y0 = pos[u]
+        x1, y1 = pos[v]
+        weight_x.append((x0 + x1) / 2)
+        weight_y.append((y0 + y1) / 2)
+        weight_text.append(f"<b>[{d['weight']}]</b>")
+
+    weight_trace = go.
