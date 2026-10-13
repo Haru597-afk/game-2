@@ -7,7 +7,7 @@ st.set_page_config(page_title="Hardcore Shortest Path Game", layout="centered")
 
 st.title("🔥 เกมคลิกหาเส้นทางที่สั้นที่สุด (ระดับฮาร์ดคอร์)")
 st.write(
-    "ยินดีต้อนรับสู่โหมดความยากสูงสุด! ระบบจะสร้างกราฟขนาดใหญ่ โครงสร้างซับซ้อน และค่าน้ำหนักที่ชัดเจน เลือกรูปแบบและความยากด้านล่างแล้วมาท้าทายกันเลย!"
+    "ยินดีต้อนรับสู่โหมดความยากสูงสุด! ระบบจะสร้างกราฟขนาดใหญ่ โครงสร้างซับซ้อน และแสดงค่าน้ำหนักบนเส้นเชื่อมให้เห็นชัดเจน เลือกรูปแบบและความยากด้านล่างแล้วมาท้าทายกันเลย!"
 )
 
 if "game_started" not in st.session_state:
@@ -113,12 +113,12 @@ if st.session_state.game_started:
     edge_trace = go.Scatter(
         x=edge_x,
         y=edge_y,
-        line=dict(width=2, color="#666"),
+        line=dict(width=2.5, color="#555"),
         hoverinfo="none",
         mode="lines",
     )
 
-    # 2. แสดงตัวเลขน้ำหนัก (Weight) ให้เด่นชัดบนเส้นเชื่อม
+    # 2. ขยายขนาดและปรับสีตัวเลขน้ำหนัก (Weight) ให้เด่นชัดที่สุด
     weight_x = []
     weight_y = []
     weight_text = []
@@ -127,18 +127,18 @@ if st.session_state.game_started:
         x1, y1 = pos[v]
         weight_x.append((x0 + x1) / 2)
         weight_y.append((y0 + y1) / 2)
-        weight_text.append(f"<b>{d['weight']}</b>")
+        weight_text.append(f"<b>[{d['weight']}]</b>")
 
     weight_trace = go.Scatter(
         x=weight_x,
         y=weight_y,
         mode="text",
         text=weight_text,
-        textfont=dict(color="crimson", size=14, family="sans-serif"),
+        textfont=dict(color="red", size=16, family="Arial Black"),
         hoverinfo="none",
     )
 
-    # 3. วาดโหนด (Nodes) พร้อมแยกสีเส้นทางที่เดินแล้ว
+    # 3. วาดโหนด (Nodes)
     node_x = []
     node_y = []
     node_text = []
@@ -148,7 +148,6 @@ if st.session_state.game_started:
         x, y = pos[node]
         node_x.append(x)
         node_y.append(y)
-        node_text.append(f"โหนด {node}")
         if node == start_node:
             node_colors.append("lightgreen")
         elif node == end_node:
@@ -171,13 +170,14 @@ if st.session_state.game_started:
             size=36,
             line=dict(width=3, color="black"),
         ),
+        textfont=dict(size=14, color="black", family="Arial Black"),
     )
 
     fig = go.Figure(
         data=[edge_trace, weight_trace, node_trace],
         layout=go.Layout(
             title=dict(
-                text="แผนผังเครือข่ายเส้นทาง (Network Graph)",
+                text="แผนผังเครือข่ายเส้นทางพร้อมค่าน้ำหนัก",
                 font=dict(size=16),
             ),
             showlegend=False,
@@ -185,14 +185,23 @@ if st.session_state.game_started:
             margin=dict(b=20, l=20, r=20, t=40),
             xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
             yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-            height=500,
+            height=520,
         ),
     )
 
-    # แสดงกราฟด้วย st.plotly_chart เพื่อความเสถียร 100%
     st.plotly_chart(fig, use_container_width=True)
 
-    # ควบคุมการเดินด้วยการเลือกโหนดถัดไปจากโหนดปัจจุบัน
+    # แสดงตารางบอกน้ำหนักของทุกเส้นเชื่อมเพื่อให้อ่านค่าง่ายและชัดเจนยิ่งขึ้น
+    with st.expander("📋 ตารางแสดงค่าน้ำหนักของทุกเส้นเชื่อมในกราฟนี้"):
+        edge_data = [
+            {
+                "เส้นเชื่อมระหว่างโหนด": f"{u} ⟷ {v}",
+                "ค่าน้ำหนัก (Weight)": G[u][v]["weight"],
+            }
+            for u, v in G.edges()
+        ]
+        st.table(edge_data)
+
     last_node = st.session_state.user_path[-1]
     neighbors = list(G.neighbors(last_node))
 
