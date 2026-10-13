@@ -5,7 +5,7 @@ import pandas as pd
 import streamlit as st
 
 # 1) Page setup
-st.set_page_config(page_title="Shortest Path Challenge Game", page_layout="wide")
+st.set_page_config(page_title="Shortest Path Challenge Game", layout="wide")
 
 st.title("🎮 Shortest Path Challenge Game (ทฤษฎีกราฟ)")
 st.write(
