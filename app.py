@@ -121,4 +121,22 @@ if st.session_state.game_started:
     weight_x = []
     weight_y = []
     weight_text = []
-    for u, v
+    for u, v, d in G.edges(data=True):
+        x0, y0 = pos[u]
+        x1, y1 = pos[v]
+        weight_x.append((x0 + x1) / 2)
+        weight_y.append((y0 + y1) / 2)
+        weight_text.append(str(d["weight"]))
+
+    weight_trace = go.Scatter(
+        x=weight_x,
+        y=weight_y,
+        mode="text",
+        text=weight_text,
+        textfont=dict(color="red", size=12, family="sans-serif"),
+        hoverinfo="none",
+    )
+
+    node_x = []
+    node_y = []
+    node_text
