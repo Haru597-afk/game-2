@@ -53,8 +53,8 @@ if st.session_state.game_started:
   end_node = st.session_state.end_node
 
   st.info(
-      f"จุดเริ่มต้น (Start): โหนด **{start_node}**  |  จุดปลายทาง (Finish): โหนด"
-      f" **{end_node}**"
+      f"จุดเริ่มต้น (Start): โหนด {start_node}  |  จุดปลายทาง (Finish): โหนด"
+      f" {end_node}"
   )
 
   # คำนวณคำตอบที่สั้นที่สุดด้วย Dijkstra รอไว้เทียบ
@@ -179,21 +179,4 @@ if st.session_state.game_started:
   total_user_dist = 0
 
   for i in range(len(current_user_path) - 1):
-    u = current_user_path[i]
-    v = current_user_path[i + 1]
-    total_user_dist += G[u][v]["weight"]
-
-  st.markdown("---")
-  path_display = " ➔ ".join(str(n) for n in current_user_path)
-  st.write(f"🚶‍♂️ **เส้นทางที่คุณเดินปัจจุบัน:** {path_display}")
-  st.success(f"ระยะทางรวมที่คุณเดินตอนนี้: **{total_user_dist} หน่วย**")
-
-  # ตรวจสอบว่าเดินถึงเป้าหมายหรือยัง
-  if current_user_path[-1] == end_node:
-    if total_user_dist == optimal_dist:
-      st.balloons()
-      st.success("🎉 ยินดีด้วย! คุณเดินถึงปลายทางและเลือกเส้นทางที่สั้นที่สุดพอดีเป๊ะ!")
-    else:
-      optimal_str = " ➔ ".join(str(n) for n in optimal_path)
-      st.info(
-          f"🏁 เดินถึงเป้าหมายแล้ว! ระยะทางรวมของคุณคือ {total_user_dist} หน่วย
+    u
