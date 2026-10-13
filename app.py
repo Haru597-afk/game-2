@@ -8,7 +8,9 @@ st.set_page_config(page_title="Shortest Path Click Game", layout="centered")
 
 st.title("🗺️ เกมคลิกเลือกเส้นทางที่สั้นที่สุด (Shortest Path Click Game)")
 st.write(
-    "กติกา: ระบบจะสุ่มกราฟ จุดเริ่มต้น และจุดปลายทางให้ ให้คุณใช้เมาส์คลิกที่โหนดบนรูปแผนภาพเพื่อเดินตามเส้นทาง แล้วระบบจะรวมระยะทางให้ทันที!"
+    "กติกา: ระบบจะสุ่มกราฟ จุดเริ่มต้น และจุดปลายทางให้ "
+    "ให้คุณใช้เมาส์คลิกที่โหนดเพื่อเดินไปจนถึงเป้าหมาย โดยระบบจะไม่เฉลยความถูกต้องระหว่างทาง "
+    "ให้กดปุ่มยืนยันในตอนท้ายเพื่อตรวจคำตอบ!"
 )
 
 # 1) ตั้งค่าสถานะเกมด้วย st.session_state
@@ -33,6 +35,7 @@ def generate_new_game():
   st.session_state.start_node = nodes[0]
   st.session_state.end_node = nodes[-1]
   st.session_state.user_path = [nodes[0]]
+  st.session_state.submitted = False
   st.session_state.game_started = True
 
 
@@ -45,6 +48,7 @@ with col_b1:
 with col_b2:
   if st.button("🔄 รีเซ็ตเส้นทางที่เดิน"):
     st.session_state.user_path = [st.session_state.start_node]
+    st.session_state.submitted = False
     st.rerun()
 
 if st.session_state.game_started:
@@ -57,7 +61,7 @@ if st.session_state.game_started:
       f" {end_node}"
   )
 
-  # คำนวณคำตอบที่สั้นที่สุดด้วย Dijkstra รอไว้เทียบ
+  # คำนวณคำตอบที่สั้นที่สุดด้วย Dijkstra (เก็บไว้ตรวจตอนกดคอนเฟิร์ม)
   optimal_path = nx.shortest_path(
       G, source=start_node, target=end_node, weight="weight"
   )
@@ -152,7 +156,7 @@ if st.session_state.game_started:
   )
 
   # แสดงกราฟและดักจับการคลิกเมาส์
-  st.write("👇 **คลิกที่โหนดบนแผนภาพด้านล่างเพื่อเลือกเดินทีละก้าว:**")
+  st.write("👇 **คลิกที่โหนดบนแผนภาพเพื่อเดินทีละก้าว:**")
   selected_point = plotly_events(
       fig, click_event=True, hover_event=False, override_height=450
   )
@@ -168,6 +172,9 @@ if st.session_state.game_started:
         st.warning(f"คุณอยู่ที่โหนด {clicked_node} แล้ว")
       elif G.has_edge(last_node, clicked_node):
         st.session_state.user_path.append(clicked_node)
+        st.session_state.submitted = (
+            False  # รีเซ็ตการคอนเฟิร์มหากมีการเปลี่ยนเส้นทาง
+        )
         st.rerun()
       else:
         st.error(
@@ -179,4 +186,36 @@ if st.session_state.game_started:
   total_user_dist = 0
 
   for i in range(len(current_user_path) - 1):
-    u
+    u = current_user_path[i]
+    v = current_user_path[i + 1]
+    total_user_dist += G[u][v]["weight"]
+
+  st.markdown("---")
+  path_display = " ➔ ".join(str(n) for n in current_user_path)
+  st.write(f"🚶‍♂️ **เส้นทางที่คุณเดินปัจจุบัน:** {path_display}")
+  st.write(f"ระยะทางรวมที่คุณเดินตอนนี้: **{total_user_dist} หน่วย**")
+
+  # หากเดินถึงโหนดปลายทางแล้ว ให้แสดงปุ่มคอนเฟิร์ม
+  if current_user_path[-1] == end_node:
+    st.success(
+        "🎯 คุณเดินมาถึงจุดปลายทางแล้ว! กดปุ่มด้านล่างเพื่อยืนยันและตรวจคำตอบ"
+    )
+    if not st.session_state.submitted:
+      if st.button("🏁 ยืนยันคำตอบ (Confirm Path)"):
+        st.session_state.submitted = True
+        st.rerun()
+    else:
+      # แสดงผลการตรวจเมื่อกดปุ่มคอนเฟิร์มแล้วเท่านั้น
+      if total_user_dist == optimal_dist:
+        st.balloons()
+        st.success(
+            "🎉 ยินดีด้วย! คุณหาเส้นทางที่สั้นที่สุดได้ถูกต้องและยอดเยี่ยมมาก!"
+        )
+      else:
+        optimal_str = " ➔ ".join(str(n) for n in optimal_path)
+        st.info(
+            f"🏁 ผลลัพธ์: ระยะทางรวมของคุณคือ {total_user_dist} หน่วย"
+            f" (เส้นทางที่สั้นที่สุดจริง ๆ คือ {optimal_dist} หน่วย: {optimal_str})"
+        )
+  else:
+    st.info("💡 เดินทางต่อไปให้ถึงโหนดปลายทาง (Finish) เพื่อทำการยืนยันคำตอบ")
